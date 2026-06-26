@@ -1,0 +1,101 @@
+{
+  "features": [
+    "Cellulose_pct",
+    "Hemicellulose_pct",
+    "Lignin_pct",
+    "ParticleSize_mm",
+    "PyrolysisTemp_C"
+  ],
+  "target": "BioOilYield_pct",
+  "n_train": 403,
+  "n_test": 101,
+  "feature_stats": {
+    "Cellulose_pct": {
+      "min": 12.26,
+      "max": 59.7,
+      "mean": 35.1569246031746,
+      "p05": 16.4,
+      "p95": 48.34
+    },
+    "Hemicellulose_pct": {
+      "min": 1.13,
+      "max": 52.0,
+      "mean": 26.34684523809524,
+      "p05": 10.44,
+      "p95": 44.01
+    },
+    "Lignin_pct": {
+      "min": 0.8,
+      "max": 47.97,
+      "mean": 24.29686507936508,
+      "p05": 4.91,
+      "p95": 40.4
+    },
+    "ParticleSize_mm": {
+      "min": 0.125,
+      "max": 10.0,
+      "mean": 1.1004394841269842,
+      "p05": 0.224,
+      "p95": 3.2
+    },
+    "PyrolysisTemp_C": {
+      "min": 277.0,
+      "max": 900.0,
+      "mean": 494.1825396825397,
+      "p05": 350.0,
+      "p95": 650.0
+    }
+  },
+  "target_stats": {
+    "min": 13.33,
+    "max": 70.41,
+    "mean": 42.45547619047618
+  },
+  "models": {
+    "catboost": {
+      "best_params": {
+        "learning_rate": 0.05,
+        "l2_leaf_reg": 5,
+        "iterations": 400,
+        "depth": 8
+      },
+      "cv_r2": 0.6878633294335392,
+      "r2_train": 0.9284075090046019,
+      "r2_test": 0.7510747224746865,
+      "rmse_test": 5.251525933002728,
+      "mae_test": 3.5318062442849443
+    },
+    "lightgbm": {
+      "best_params": {
+        "reg_lambda": 0.1,
+        "reg_alpha": 0,
+        "num_leaves": 15,
+        "n_estimators": 600,
+        "min_child_samples": 10,
+        "max_depth": 8,
+        "learning_rate": 0.03
+      },
+      "cv_r2": 0.6595727197735439,
+      "r2_train": 0.9272269461979701,
+      "r2_test": 0.7498199692251295,
+      "rmse_test": 5.26474493275288,
+      "mae_test": 3.546638939628388
+    },
+    "xgboost": {
+      "best_params": {
+        "subsample": 0.85,
+        "reg_lambda": 0,
+        "reg_alpha": 0.1,
+        "n_estimators": 200,
+        "max_depth": 7,
+        "learning_rate": 0.03,
+        "colsample_bytree": 1.0
+      },
+      "cv_r2": 0.6819404081319815,
+      "r2_train": 0.9492936399645783,
+      "r2_test": 0.7581719861349141,
+      "rmse_test": 5.176119794677668,
+      "mae_test": 3.3843910798932066
+    }
+  }
+}

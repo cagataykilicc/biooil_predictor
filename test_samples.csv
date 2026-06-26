@@ -1,0 +1,10 @@
+Biomass_name,Cellulose_pct,Hemicellulose_pct,Lignin_pct,ParticleSize_mm,PyrolysisTemp_C
+Pirinc sapi (rice straw),36.5,24.0,15.4,1.0,500
+Bugday sapi (wheat straw),38.6,28.5,15.0,1.0,500
+Misir kocani (corn cob),35.0,28.0,15.0,1.0,500
+Findik kabugu (hazelnut shell),26.8,30.4,42.9,0.5,500
+Pamuk sapi (cotton stalk),45.0,21.0,30.0,1.0,500
+Ayciçek sapi (sunflower stalk),42.1,29.7,13.4,1.0,500
+Optimum kosul testi - rice straw,36.5,24.0,15.4,0.5,475
+Yuksek sicaklik testi - rice straw,36.5,24.0,15.4,1.0,800
+Aralik disi - cok kucuk partikul,36.5,24.0,15.4,0.05,500
