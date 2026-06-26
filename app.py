@@ -90,16 +90,16 @@ def save_to_history(sample_name, values, cb_pred, lgb_pred, xgb_pred, mean_pred,
     google_saved = False
     if GOOGLE_FORM_URL and "SİZİN_GOOGLE_FORM_URL" not in GOOGLE_FORM_URL:
         form_data = {
-            "entry.1111111111": sample_name,
-            "entry.2222222222": values["Cellulose_pct"],
-            "entry.3333333333": values["Hemicellulose_pct"],
-            "entry.4444444444": values["Lignin_pct"],
-            "entry.5555555555": values["ParticleSize_mm"],
-            "entry.6666666666": values["PyrolysisTemp_C"],
-            "entry.7777777777": mean_pred,
-            "entry.8888888888": std_pred,
-            "entry.9999999999": opt_temp,
-            "entry.0000000000": opt_yield
+            "entry.1776230691": sample_name,
+            "entry.334331509": values["Cellulose_pct"],
+            "entry.644311460": values["Hemicellulose_pct"],
+            "entry.410969399": values["Lignin_pct"],
+            "entry.732774106": values["ParticleSize_mm"],
+            "entry.1019577098": values["PyrolysisTemp_C"],
+            "entry.200322097": mean_pred,
+            "entry.36521110": std_pred,
+            "entry.1120845643": opt_temp,
+            "entry.228553725": opt_yield
         }
         try:
             response = requests.post(GOOGLE_FORM_URL, data=form_data)
