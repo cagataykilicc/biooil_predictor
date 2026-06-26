@@ -1,92 +1,100 @@
-# Bio-yağ Verimi Tahmin Programı
+# 🌱 Tarımsal Biyokütle Pirolizi — Bio-Yağ Verimi Tahmin Programı
 
-Tarımsal biyokütle pirolizinden elde edilecek **bio-yağ verimini (%)** tahmin eden bir Python programı. Üç gradient boosting modelinin (CatBoost, LightGBM, XGBoost) ortalamasıyla tahmin yapar; ek olarak modeller arası varyansı belirsizlik göstergesi olarak sunar.
+Tarımsal biyokütle pirolizinden elde edilecek **bio-yağ verimini (%)** tahmin eden ve piroliz sıcaklığını optimize eden interaktif bir yapay zeka aracıdır. 
 
-## Veri kaynağı
+Üç güçlü gradient boosting modelinin (CatBoost, LightGBM, XGBoost) topluluk (ensemble) tahminiyle çalışır ve modeller arası varyansı tahmin belirsizliği (sapma) olarak sunar.
 
-Eğitim verisi 504 kayıttan oluşuyor:
-- **Zhao et al. (2024)** — Renewable Energy 225:120218, Tablo A.1 (163 kayıt)
-- **Ortiz, M. (2021)** — Mendeley Data, DOI: 10.17632/BX88YMGBBV.1 (341 kayıt)
+---
 
-## Girdi parametreleri
+## 🚀 Yeni Eklenen Özellikler
 
-| Parametre | Birim | Tipik aralık |
-|---|---|---|
-| Cellulose | % | 12 – 60 |
-| Hemicellulose | % | 1 – 52 |
-| Lignin | % | 1 – 48 |
-| Particle size | mm | 0.2 – 3.2 |
-| Pyrolysis temperature | °C | 300 – 900 |
+*   **🌐 İnteraktif Web Dashboard (Streamlit):** Girdileri sliders yardımıyla kontrol edebileceğiniz, anlık tahmin grafiklerini ve sıcaklık-verim analizlerini izleyebileceğiniz modern bir web uygulaması (`app.py`).
+*   **🌾 Hazır Biyokütle Kütüphanesi (Presets):** Yaygın tarımsal biyokütlelerin (Pirinç Sapı, Buğday Sapı, Mısır Koçanı, Fındık Kabuğu vb.) kimyasal bileşen yüzdeleri sisteme tanımlanmıştır. Tek tıkla otomatik doldurulabilir.
+*   **🎯 Sıcaklık Optimizasyon Motoru:** Biyokütle bileşimini sabit tutarak 300°C - 900°C arasındaki tüm sıcaklıkları simüle eder ve en yüksek verimi alabileceğiniz **optimum piroliz sıcaklığını** önerir.
+*   **🏷️ Numune İsmi Tanımlama:** Tahminlerinizi isimlendirebilir ve raporları bu etiketle kaydedebilirsiniz.
+*   **💾 Tahmin Geçmişi Kaydedici (History Logging):** İnteraktif modda yaptığınız tüm tahminler anlık tarih/saat damgası ile `predictions_history.csv` dosyasına otomatik olarak eklenir.
+*   **🛑 Kolay İptal (CLI):** Komut satırında veri girerken herhangi bir adımda `q`, `iptal` veya `exit` yazarak işlemi güvenle sonlandırabilirsiniz.
 
-## Kurulum
+---
 
-```bash
-pip install pandas numpy scikit-learn catboost lightgbm xgboost joblib
-```
+## 🛠️ Kurulum
 
-## Kullanım
-
-### 1) Modeli eğit (sadece bir kez)
+Gerekli tüm kütüphaneleri sanal ortamınıza yüklemek için:
 
 ```bash
-python train_model.py --data merged_dataset.csv
+pip install -r requirements.txt
 ```
 
-Bu adım `models/` klasörü oluşturur:
-- `catboost.pkl`, `lightgbm.pkl`, `xgboost.pkl` — eğitilmiş modeller
-- `metadata.json` — özellik istatistikleri, hyperparameter'lar, performans metrikleri
+---
 
-### 2) Tahmin yap
+## 💻 Kullanım Yöntemleri
 
-**İnteraktif mod (tek tahmin):**
+### Yöntem 1: İnteraktif Web Dashboard (Önerilen)
+
+Sürükle-bırak kontrol araçları ve dinamik grafikler içeren web arayüzünü başlatmak için:
+
+```bash
+streamlit run app.py
+```
+Arayüz tarayıcınızda otomatik olarak `http://localhost:8501` adresinde açılacaktır.
+
+### Yöntem 2: Komut Satırı İnteraktif Mod (Tekil Tahmin)
+
+Konsol üzerinden adım adım numune adı, hazır biyokütle seçimi ve sıcaklık değerlerini girerek tahmin yapmak için:
+
 ```bash
 python predict.py
 ```
-Program sizden parametreleri tek tek soracak ve tahmini ekrana basacak.
+*Herhangi bir adımda çıkış yapmak için `q` yazabilirsiniz. Tahminleriniz `predictions_history.csv` dosyasına kaydedilecektir.*
 
-**Toplu mod (CSV → CSV):**
+### Yöntem 3: Toplu Tahmin Modu (CSV → CSV)
+
+Elindeki çok sayıda numunenin tahminlerini ve optimum sıcaklık hesaplamalarını toplu olarak yapıp kaydetmek için:
+
 ```bash
-python predict.py --input my_samples.csv --output predictions.csv
+python predict.py --input test_samples.csv --output predictions.csv
+```
+*Bu modda çıktı dosyasına (`predictions.csv`) her numune için hesaplanan optimum sıcaklık (`Optimum_PyrolysisTemp_C`) ve maksimum verim (`Max_Predicted_BioOilYield_pct`) sütunları eklenir.*
+
+---
+
+## 📊 Örnek Çıktı Yapısı (Komut Satırı)
+
+```text
+======================================================================
+  TAHMİN SONUCU
+======================================================================
+  Biyokütle Adı:  Fındık Kabuğu Denemesi
+  Bio-yağ verimi: 43.63% +/- 0.35
+  Aralık:         [43.32, 44.11] %
+
+======================================================================
+  SICAKLIK OPTİMİZASYON TAVSİYESİ
+======================================================================
+  Girdiğiniz bileşim ve partikül boyutu (0.5 mm) için:
+    En yüksek verimi sağlayan optimum sıcaklık: 455°C
+    Bu sıcaklıktaki tahmini bio-yağ verimi:    %47.58
+    >> Tavsiye: Sıcaklığı 500°C değerinden 455°C değerine ayarlamak,
+       verimi yaklaşık %3.95 oranında artırabilir.
 ```
 
-Girdi CSV'sinde şu sütunlar bulunmalıdır:
-```
-Cellulose_pct,Hemicellulose_pct,Lignin_pct,ParticleSize_mm,PyrolysisTemp_C
-```
+---
 
-## Örnek çıktı (interaktif)
+## 📁 Proje Dosya Yapısı
 
-```
-  Bio-yağ verimi: 45.32% ± 1.18
-  Aralık:         [44.05, 46.41] %
-
-  Bireysel modeller:
-    CatBoost  : 45.68%
-    LightGBM  : 44.05%
-    XGBoost   : 46.23%
-
-  Eğitim verisinde gözlemlenen aralık: 13.3% – 70.4% (ortalama 42.6%)
-
-  Model performansı (test seti üzerinde):
-    R² = 0.751, RMSE = 5.25, MAE = 3.53
-```
-
-## Kısıtlamalar
-
-- Test setinde R² ≈ 0.75 ve RMSE ≈ 5.25 puan. Yani tipik tahmin hatası ±5 puan civarında.
-- Model **fixed-bed piroliz** verisi üzerinde eğitilmiş. Akışkan yatak veya mikrodalga gibi farklı reaktör tipleri için uygun değildir.
-- Eğitim aralığı dışındaki girdilerde program uyarı verir; bu durumlarda tahmin güvenilirliği belirgin biçimde düşer.
-- Cellulose+Hemicellulose+Lignin toplamı %100'ü aşamaz; kül ve ekstraktif maddeler bu üç bileşenin dışındadır.
-
-## Dosya yapısı
-
-```
+```text
 biooil_predictor/
-├── train_model.py        # Modeli bir kez eğitir
-├── predict.py            # Tahmin programı (asıl çalıştırılan)
-├── merged_dataset.csv    # Birleşik eğitim verisi
-├── README.md
-└── models/               # train_model.py tarafından oluşturulur
+├── train_model.py          # Makine öğrenmesi modellerini eğitir
+├── predict.py              # Komut satırı tahmin ve optimizasyon aracı
+├── app.py                  # İnteraktif Web Dashboard arayüzü (Streamlit)
+├── merged_dataset.csv      # Biyokütle eğitim veri kümesi
+├── test_samples.csv        # Toplu tahmin için örnek girdi CSV şablonu
+├── predictions_history.csv # İnteraktif tahminlerin geçmiş günlüğü (Otomatik oluşturulur)
+├── requirements.txt        # Gerekli Python kütüphaneleri listesi
+├── .gitignore              # Git tarafından takip edilmeyecek dosyalar listesi
+├── .streamlit/
+│   └── config.toml         # Streamlit sunucu ve arayüz yapılandırması
+└── models/                 # train_model.py tarafından kaydedilen modeller
     ├── catboost.pkl
     ├── lightgbm.pkl
     ├── xgboost.pkl
