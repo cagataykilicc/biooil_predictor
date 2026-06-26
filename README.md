@@ -80,6 +80,28 @@ python predict.py --input test_samples.csv --output predictions.csv
 
 ---
 
+## 📈 Google Sheets (Google E-Tablolar) Entegrasyonu Kurulumu
+
+Web sitesini canlıya aldıktan sonra 3. şahısların (arkadaşlarınızın, ziyaretçilerin) yaptığı tahmin verilerini kendi Google Sheets belgenizde toplamak isterseniz şu adımları izleyin:
+
+1. **Google Form Oluşturun:** Google Drive'ınızda yeni bir Google Form oluşturun ve sırasıyla şu kısa yanıtlı soruları ekleyin:
+   - `Biomass_name` (Numune Adı)
+   - `Cellulose_pct`
+   - `Hemicellulose_pct`
+   - `Lignin_pct`
+   - `ParticleSize_mm`
+   - `PyrolysisTemp_C`
+   - `PredictedYield`
+   - `PredictionStd`
+   - `OptimumTemp`
+   - `OptimumYield`
+2. **Formu Yanıt Tablosuna Bağlayın:** Formun "Yanıtlar" sekmesinden e-tablo (Google Sheets) simgesine tıklayarak verilerin yazılacağı e-tabloyu oluşturun.
+3. **Form URL'sini Alın:** Formun gönderim adresini edinin (Örn: `https://docs.google.com/forms/d/e/1FAIpQLSfXXXXXX/formResponse`). Bu adresi [app.py](file:///c:/Users/USER/biooil_predictor/app.py) dosyasında 72. satırda yer alan `GOOGLE_FORM_URL` değişkenine yapıştırın.
+4. **Soru entry ID'lerini Eşleştirin:** Formun önizleme sayfasında sağ tıklayıp "Kaynağı İncele" deyin. Eklediğiniz her sorunun HTML kodundaki `name="entry.XXXXXXXXXX"` parametrelerini bularak [app.py](file:///c:/Users/USER/biooil_predictor/app.py) içindeki `form_data` anahtarlarıyla eşleştirin.
+5. Değişiklikleri push ettikten sonra web sitesindeki kaydet butonu tüm tahminleri canlı olarak sizin Google E-Tablonuza yazacaktır!
+
+---
+
 ## 📁 Proje Dosya Yapısı
 
 ```text

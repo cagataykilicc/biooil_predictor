@@ -44,6 +44,79 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 
+def save_to_history(sample_name, values, cb_pred, lgb_pred, xgb_pred, mean_pred, std_pred, min_pred, max_pred, opt_temp, opt_yield):
+    """Web arayüzünde yapılan tahmini hem yerel CSV'ye hem de (ayarlanmışsa) Google Form aracılığıyla Google E-Tabloya kaydeder."""
+    from datetime import datetime
+    import requests
+    history_file = Path("predictions_history.csv")
+    
+    new_row = {
+        "Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "Biomass_name": sample_name,
+        "Cellulose_pct": values["Cellulose_pct"],
+        "Hemicellulose_pct": values["Hemicellulose_pct"],
+        "Lignin_pct": values["Lignin_pct"],
+        "ParticleSize_mm": values["ParticleSize_mm"],
+        "PyrolysisTemp_C": values["PyrolysisTemp_C"],
+        "Predicted_BioOilYield_pct": mean_pred,
+        "Prediction_Std": std_pred,
+        "Prediction_Min": min_pred,
+        "Prediction_Max": max_pred,
+        "CatBoost_Pred": cb_pred,
+        "LightGBM_Pred": lgb_pred,
+        "XGBoost_Pred": xgb_pred,
+        "Optimum_PyrolysisTemp_C": opt_temp,
+        "Max_Predicted_BioOilYield_pct": opt_yield
+    }
+    
+    df_new = pd.DataFrame([new_row])
+    local_saved = False
+    
+    try:
+        if history_file.exists():
+            df_hist = pd.read_csv(history_file)
+            df_combined = pd.concat([df_hist, df_new], ignore_index=True)
+            df_combined.to_csv(history_file, index=False)
+        else:
+            df_new.to_csv(history_file, index=False)
+        local_saved = True
+    except Exception as e:
+        st.error(f"Yerel dosyaya yazılırken hata oluştu: {str(e)}")
+        
+    # Google E-Tablo Entegrasyonu (Google Form POST İsteği)
+    # Kendi Google Formunuzu oluşturduktan sonra aşağıdaki bilgileri güncelleyin:
+    GOOGLE_FORM_URL = "https://docs.google.com/forms/d/e/1FAIpQLScVNCZuP38OYVdtaESONN2xnL7YE1ZMB0hh2p97-KPo_-5B_g/formResponse" # Örn: "https://docs.google.com/forms/d/e/1FAIpQLSfXXXXXX/formResponse"
+    
+    google_saved = False
+    if GOOGLE_FORM_URL and "SİZİN_GOOGLE_FORM_URL" not in GOOGLE_FORM_URL:
+        form_data = {
+            "entry.1111111111": sample_name,
+            "entry.2222222222": values["Cellulose_pct"],
+            "entry.3333333333": values["Hemicellulose_pct"],
+            "entry.4444444444": values["Lignin_pct"],
+            "entry.5555555555": values["ParticleSize_mm"],
+            "entry.6666666666": values["PyrolysisTemp_C"],
+            "entry.7777777777": mean_pred,
+            "entry.8888888888": std_pred,
+            "entry.9999999999": opt_temp,
+            "entry.0000000000": opt_yield
+        }
+        try:
+            response = requests.post(GOOGLE_FORM_URL, data=form_data)
+            if response.status_code == 200:
+                google_saved = True
+            else:
+                st.warning(f"Google E-Tablo kaydı başarısız oldu (Durum Kodu: {response.status_code})")
+        except Exception as e:
+            st.warning(f"Google E-Tablo bağlantı hatası: {str(e)}")
+            
+    if local_saved:
+        if google_saved:
+            st.toast("💾 Tahmin hem Yerel CSV'ye hem de Google E-Tabloya kaydedildi!", icon="🚀")
+        else:
+            st.toast("💾 Tahmin yerel geçmiş dosyasına kaydedildi!", icon="✔️")
+
+
 @st.cache_resource
 def load_models_and_metadata():
     """Loads models and metadata and caches them for performance."""
@@ -77,8 +150,6 @@ if models and metadata:
     with col_input:
         st.header("📋 Girdi Parametreleri")
         
-        sample_name = st.text_input("Biyokütle / Numune Adı", "Çam Talaşı")
-        
         # Hazır biyokütle kütüphanesi
         FEEDSTOCK_PRESETS = {
             "Pirinç Sapı (Rice straw)": {"Cellulose_pct": 36.5, "Hemicellulose_pct": 24.0, "Lignin_pct": 15.4},
@@ -94,15 +165,19 @@ if models and metadata:
             ["Manuel Giriş"] + list(FEEDSTOCK_PRESETS.keys())
         )
         
+        default_name = "Çam Talaşı"
         default_cel = 35.0
         default_hem = 25.0
         default_lig = 24.0
         
         if preset_choice in FEEDSTOCK_PRESETS:
+            default_name = preset_choice
             default_cel = FEEDSTOCK_PRESETS[preset_choice]["Cellulose_pct"]
             default_hem = FEEDSTOCK_PRESETS[preset_choice]["Hemicellulose_pct"]
             default_lig = FEEDSTOCK_PRESETS[preset_choice]["Lignin_pct"]
             
+        sample_name = st.text_input("Biyokütle / Numune Adı", default_name)
+        
         st.subheader("Biyokütle Yapısı (%)")
         cel = st.slider("Cellulose (Selüloz) İçeriği (%)", 5.0, 70.0, default_cel, 0.1)
         hem = st.slider("Hemicellulose (Hemiselüloz) İçeriği (%)", 1.0, 60.0, default_hem, 0.1)
@@ -170,6 +245,25 @@ if models and metadata:
         min_pred = float(preds.min())
         max_pred = float(preds.max())
         
+        # Calculate temperature profile curve first so we have the optimum data
+        temp_range = np.arange(250, 951, 10)
+        curve_data = []
+        for t_val in temp_range:
+            test_val = values.copy()
+            test_val["PyrolysisTemp_C"] = int(t_val)
+            curve_data.append(test_val)
+            
+        curve_df = pd.DataFrame(curve_data)
+        cb_curve = models["catboost"].predict(curve_df)
+        lgb_curve = models["lightgbm"].predict(curve_df)
+        xgb_curve = models["xgboost"].predict(curve_df)
+        ensemble_curve = (cb_curve + lgb_curve + xgb_curve) / 3.0
+        
+        max_idx = np.argmax(ensemble_curve)
+        opt_temp = int(temp_range[max_idx])
+        opt_yield = float(ensemble_curve[max_idx])
+        yield_diff = opt_yield - mean_pred
+        
         # Main Metrics Row
         m_col1, m_col2 = st.columns(2)
         with m_col1:
@@ -203,28 +297,17 @@ if models and metadata:
         with ind_col3:
             st.metric(label="XGBoost Tahmini", value=f"%{xgb_pred:.2f}")
 
+        # Tahmin Geçmişine Kaydetme Butonu
+        st.write("")
+        if st.button("💾 Tahmini Geçmiş Dosyasına Kaydet (predictions_history.csv)", use_container_width=True):
+            save_to_history(sample_name, values, cb_pred, lgb_pred, xgb_pred, mean_pred, std_pred, min_pred, max_pred, opt_temp, opt_yield)
+
         # Interactive Chart: Temp vs Yield Profile
         st.subheader("📈 Sıcaklığa Bağlı Bio-Yağ Verim Profili")
         st.markdown(
             "Aşağıdaki grafik, girdiğiniz biyokütle özelliklerini sabit tutarak, "
             "piroliz sıcaklığının bio-yağ verimine etkisini gösterir. Kırmızı nokta mevcut sıcaklığı belirtmektedir."
         )
-        
-        # Calculate temperature profile curve
-        temp_range = np.arange(250, 950, 10)
-        curve_data = []
-        for t_val in temp_range:
-            test_val = values.copy()
-            test_val["PyrolysisTemp_C"] = int(t_val)
-            curve_data.append(test_val)
-            
-        curve_df = pd.DataFrame(curve_data)
-        
-        # Ensemble predictions along temperature range
-        cb_curve = models["catboost"].predict(curve_df)
-        lgb_curve = models["lightgbm"].predict(curve_df)
-        xgb_curve = models["xgboost"].predict(curve_df)
-        ensemble_curve = (cb_curve + lgb_curve + xgb_curve) / 3.0
         
         # Plotting
         fig, ax = plt.subplots(figsize=(10, 4.5))
@@ -249,12 +332,6 @@ if models and metadata:
         ax.legend(loc="best")
         
         st.pyplot(fig)
-        
-        # Sıcaklık Optimizasyon Motoru
-        max_idx = np.argmax(ensemble_curve)
-        opt_temp = temp_range[max_idx]
-        opt_yield = ensemble_curve[max_idx]
-        yield_diff = opt_yield - mean_pred
         
         st.subheader("🎯 Sıcaklık Optimizasyon Tavsiyesi")
         if abs(opt_temp - pt) <= 5:
