@@ -1,0 +1,2 @@
+Timestamp,Biomass_name,Cellulose_pct,Hemicellulose_pct,Lignin_pct,ParticleSize_mm,PyrolysisTemp_C,Predicted_BioOilYield_pct,Prediction_Std,Prediction_Min,Prediction_Max,CatBoost_Pred,LightGBM_Pred,XGBoost_Pred,Optimum_PyrolysisTemp_C,Max_Predicted_BioOilYield_pct
+2026-06-26 19:22:17,Zeytin Cekirdegi,26.8,30.4,42.9,0.5,500.0,43.6268236118458,0.346668562670286,43.32257689943727,44.11187953180326,44.11187953180326,43.32257689943727,43.446014404296875,455,47.57901469736313

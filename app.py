@@ -77,10 +77,36 @@ if models and metadata:
     with col_input:
         st.header("📋 Girdi Parametreleri")
         
+        sample_name = st.text_input("Biyokütle / Numune Adı", "Çam Talaşı")
+        
+        # Hazır biyokütle kütüphanesi
+        FEEDSTOCK_PRESETS = {
+            "Pirinç Sapı (Rice straw)": {"Cellulose_pct": 36.5, "Hemicellulose_pct": 24.0, "Lignin_pct": 15.4},
+            "Buğday Sapı (Wheat straw)": {"Cellulose_pct": 38.6, "Hemicellulose_pct": 28.5, "Lignin_pct": 15.0},
+            "Mısır Koçanı (Corn cob)": {"Cellulose_pct": 35.0, "Hemicellulose_pct": 28.0, "Lignin_pct": 15.0},
+            "Fındık Kabuğu (Hazelnut shell)": {"Cellulose_pct": 26.8, "Hemicellulose_pct": 30.4, "Lignin_pct": 42.9},
+            "Pamuk Sapı (Cotton stalk)": {"Cellulose_pct": 45.0, "Hemicellulose_pct": 21.0, "Lignin_pct": 30.0},
+            "Ayçiçek Sapı (Sunflower stalk)": {"Cellulose_pct": 42.1, "Hemicellulose_pct": 29.7, "Lignin_pct": 13.4},
+        }
+        
+        preset_choice = st.selectbox(
+            "Hazır Biyokütle Kütüphanesi",
+            ["Manuel Giriş"] + list(FEEDSTOCK_PRESETS.keys())
+        )
+        
+        default_cel = 35.0
+        default_hem = 25.0
+        default_lig = 24.0
+        
+        if preset_choice in FEEDSTOCK_PRESETS:
+            default_cel = FEEDSTOCK_PRESETS[preset_choice]["Cellulose_pct"]
+            default_hem = FEEDSTOCK_PRESETS[preset_choice]["Hemicellulose_pct"]
+            default_lig = FEEDSTOCK_PRESETS[preset_choice]["Lignin_pct"]
+            
         st.subheader("Biyokütle Yapısı (%)")
-        cel = st.slider("Cellulose (Selüloz) İçeriği (%)", 5.0, 70.0, 35.0, 0.1)
-        hem = st.slider("Hemicellulose (Hemiselüloz) İçeriği (%)", 1.0, 60.0, 25.0, 0.1)
-        lig = st.slider("Lignin İçeriği (%)", 1.0, 60.0, 24.0, 0.1)
+        cel = st.slider("Cellulose (Selüloz) İçeriği (%)", 5.0, 70.0, default_cel, 0.1)
+        hem = st.slider("Hemicellulose (Hemiselüloz) İçeriği (%)", 1.0, 60.0, default_hem, 0.1)
+        lig = st.slider("Lignin İçeriği (%)", 1.0, 60.0, default_lig, 0.1)
         
         total_biomass = cel + hem + lig
         
@@ -108,6 +134,7 @@ if models and metadata:
     with col_results:
         # Perform Input Validation & Warnings
         st.header("⚡ Canlı Değerlendirme & Tahmin")
+        st.markdown(f"**Analiz Edilen Numune:** `{sample_name}`")
         
         # Warnings container
         warnings = []
@@ -222,6 +249,23 @@ if models and metadata:
         ax.legend(loc="best")
         
         st.pyplot(fig)
+        
+        # Sıcaklık Optimizasyon Motoru
+        max_idx = np.argmax(ensemble_curve)
+        opt_temp = temp_range[max_idx]
+        opt_yield = ensemble_curve[max_idx]
+        yield_diff = opt_yield - mean_pred
+        
+        st.subheader("🎯 Sıcaklık Optimizasyon Tavsiyesi")
+        if abs(opt_temp - pt) <= 5:
+            st.info(f"✔️ **Harika!** Seçtiğiniz sıcaklık ({pt}°C) zaten bu biyokütle için en ideal verimi veren optimum sıcaklığa (%{opt_yield:.2f} verim sağlayan {opt_temp}°C'ye) çok yakındır.")
+        else:
+            st.info(
+                f"💡 **Tavsiye:** Bu biyokütle yapısı ve partikül boyutu ({ps} mm) için en yüksek bio-yağ verimini sağlayan "
+                f"optimum sıcaklık **{opt_temp}°C**'dir (tahmini verim: **%{opt_yield:.2f}**).\n\n"
+                f"Sıcaklığı mevcut `{pt}°C` değerinden `{opt_temp}°C` değerine ayarlayarak "
+                f"verimi yaklaşık **%{abs(yield_diff):.2f}** oranında değiştirebilirsiniz."
+            )
         
         # Metadata / Info Tab
         with st.expander("ℹ️ Model Performansı ve Eğitim Hakkında Bilgi", expanded=False):
