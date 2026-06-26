@@ -80,6 +80,21 @@ python predict.py --input test_samples.csv --output predictions.csv
 
 ---
 
+## 📊 Akademik Grafikleri Oluşturma (Korelasyon ve Regresyon)
+
+Çalışmanızda, tez raporunuzda veya sunumlarınızda kullanmak üzere yayın kalitesinde (300 DPI) akademik grafikler üretmek için hazırlanan `generate_plots.py` betiğini çalıştırabilirsiniz:
+
+```bash
+python generate_plots.py
+```
+
+Bu betik çalıştırıldığında proje klasörünüzde şu 3 görsel üretilecektir:
+1. **`correlation_matrix.png`**: Girdi özellikleri ve hedef biyo-yağ verimi arasındaki doğrusal Pearson korelasyon katsayılarını gösteren alt üçgensel ısı haritası (Heatmap).
+2. **`regression_plots.png`**: Test kümesi üzerinde CatBoost, LightGBM, XGBoost ve Ensemble modellerinin tahminlerini deneysel gerçek değerlerle kıyaslayan, üzerinde $R^2$, RMSE ve MAE değerleri yazılı regresyon grafik paneli.
+3. **`uncertainty_vs_error.png`**: Modeller arası belirsizlik (standart sapma) ile gerçek mutlak tahmin hatası arasındaki ilişkiyi gösteren ve Pearson korelasyonunu ($r$) hesaplayan saçılım grafiği.
+
+---
+
 ## 📈 Google Sheets (Google E-Tablolar) Entegrasyonu Kurulumu
 
 Web sitesini canlıya aldıktan sonra 3. şahısların (arkadaşlarınızın, ziyaretçilerin) yaptığı tahmin verilerini kendi Google Sheets belgenizde toplamak isterseniz şu adımları izleyin:
@@ -109,6 +124,7 @@ biooil_predictor/
 ├── train_model.py          # Makine öğrenmesi modellerini eğitir
 ├── predict.py              # Komut satırı tahmin ve optimizasyon aracı
 ├── app.py                  # İnteraktif Web Dashboard arayüzü (Streamlit)
+├── generate_plots.py       # Akademik grafikleri ve istatistikleri üretir [NEW]
 ├── merged_dataset.csv      # Biyokütle eğitim veri kümesi
 ├── test_samples.csv        # Toplu tahmin için örnek girdi CSV şablonu
 ├── predictions_history.csv # İnteraktif tahminlerin geçmiş günlüğü (Otomatik oluşturulur)
