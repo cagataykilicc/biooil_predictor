@@ -91,15 +91,15 @@ def save_to_history(sample_name, values, cb_pred, lgb_pred, xgb_pred, mean_pred,
     if GOOGLE_FORM_URL and "SİZİN_GOOGLE_FORM_URL" not in GOOGLE_FORM_URL:
         form_data = {
             "entry.1776230691": sample_name,
-            "entry.334331509": values["Cellulose_pct"],
-            "entry.644311460": values["Hemicellulose_pct"],
-            "entry.410969399": values["Lignin_pct"],
-            "entry.732774106": values["ParticleSize_mm"],
-            "entry.1019577098": values["PyrolysisTemp_C"],
-            "entry.200322097": mean_pred,
-            "entry.36521110": std_pred,
-            "entry.1120845643": opt_temp,
-            "entry.228553725": opt_yield
+            "entry.334331509": round(float(values["Cellulose_pct"]), 2),
+            "entry.644311460": round(float(values["Hemicellulose_pct"]), 2),
+            "entry.410969399": round(float(values["Lignin_pct"]), 2),
+            "entry.732774106": round(float(values["ParticleSize_mm"]), 2),
+            "entry.1019577098": int(values["PyrolysisTemp_C"]),
+            "entry.200322097": round(float(mean_pred), 2),
+            "entry.36521110": round(float(std_pred), 2),
+            "entry.1120845643": int(opt_temp),
+            "entry.228553725": round(float(opt_yield), 2)
         }
         try:
             response = requests.post(GOOGLE_FORM_URL, data=form_data)
