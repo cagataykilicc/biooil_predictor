@@ -143,8 +143,21 @@ def load_models_and_metadata():
             metadata = json.load(f)
         return models, metadata
     except Exception as e:
+        import os
         st.error(f"Modeller yüklenirken hata oluştu: {str(e)}")
-        st.info("Lütfen önce model eğitimini tamamlayın: .venv\\Scripts\\python.exe train_model.py --data merged_dataset.csv")
+        
+        if MODELS_DIR.exists():
+            files_found = os.listdir(MODELS_DIR)
+            st.warning(f"**`models/` dizininde bulunan dosyalar ({len(files_found)} adet):** {files_found}")
+        else:
+            st.error("**`models/` dizini bulunamadı!**")
+            
+        st.info(
+            "💡 **Streamlit Cloud Kullanıcıları İçin:** Eğer bu hatayı uygulamayı güncelledikten hemen sonra görüyorsanız, "
+            "Streamlit Cloud deposunun güncellenmesi gecikmiş veya önbellekte kalmış olabilir. Lütfen Streamlit Cloud paneline gidin, "
+            "sağ alt köşedeki menüden **'Reboot app'** seçeneğine tıklayarak uygulamayı yeniden başlatın."
+        )
+        st.info("Lütfen önce model eğitimini tamamlayın: `.venv\\Scripts\\python.exe train_model.py --data merged_dataset.csv` (Yerel bilgisayar için)")
         return None, None
 
 
