@@ -38,6 +38,10 @@ streamlit run app.py
 ```
 Arayüz tarayıcınızda otomatik olarak `http://localhost:8501` adresinde açılacaktır.
 
+> [!IMPORTANT]
+> **Streamlit Cloud Önbellek Uyarısı (Reboot):**
+> Uygulamayı Streamlit Cloud üzerinde güncelledikten sonra model yükleme hatası (`FileNotFoundError`) alırsanız, Streamlit önbelleğinin yenilenmesi gecikmiş demektir. Sorunu çözmek için Streamlit Cloud paneline gidin ve sağ alt köşedeki menüden **"Reboot app"** seçeneğini seçerek sunucuyu yeniden başlatın.
+
 ### Yöntem 2: Komut Satırı İnteraktif Mod (Tekil Tahmin)
 
 Konsol üzerinden adım adım numune adı, hazır biyokütle seçimi ve sıcaklık değerlerini girerek tahmin yapmak için:
