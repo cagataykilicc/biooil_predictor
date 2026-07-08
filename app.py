@@ -15,6 +15,20 @@ st.set_page_config(
 
 MODELS_DIR = Path(__file__).parent / "models"
 
+MODEL_KEYS = [
+    "linear_regression",
+    "ridge",
+    "knn",
+    "svr",
+    "decision_tree",
+    "random_forest",
+    "extra_trees",
+    "gradient_boosting",
+    "xgboost",
+    "lightgbm",
+    "catboost",
+]
+
 # Style customization (Premium CSS)
 st.markdown("""
     <style>
@@ -44,7 +58,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 
-def save_to_history(sample_name, values, cb_pred, lgb_pred, xgb_pred, mean_pred, std_pred, min_pred, max_pred, opt_temp, opt_yield):
+def save_to_history(sample_name, values, preds_dict, mean_pred, std_pred, min_pred, max_pred, opt_temp, opt_yield):
     """Web arayüzünde yapılan tahmini hem yerel CSV'ye hem de (ayarlanmışsa) Google Form aracılığıyla Google E-Tabloya kaydeder."""
     from datetime import datetime
     import requests
@@ -62,12 +76,14 @@ def save_to_history(sample_name, values, cb_pred, lgb_pred, xgb_pred, mean_pred,
         "Prediction_Std": std_pred,
         "Prediction_Min": min_pred,
         "Prediction_Max": max_pred,
-        "CatBoost_Pred": cb_pred,
-        "LightGBM_Pred": lgb_pred,
-        "XGBoost_Pred": xgb_pred,
-        "Optimum_PyrolysisTemp_C": opt_temp,
-        "Max_Predicted_BioOilYield_pct": opt_yield
     }
+    
+    for name in MODEL_KEYS:
+        col_name = f"{name.replace('_', ' ').title().replace(' ', '')}_Pred"
+        new_row[col_name] = float(preds_dict[name])
+        
+    new_row["Optimum_PyrolysisTemp_C"] = opt_temp
+    new_row["Max_Predicted_BioOilYield_pct"] = opt_yield
     
     df_new = pd.DataFrame([new_row])
     local_saved = False
@@ -84,8 +100,7 @@ def save_to_history(sample_name, values, cb_pred, lgb_pred, xgb_pred, mean_pred,
         st.error(f"Yerel dosyaya yazılırken hata oluştu: {str(e)}")
         
     # Google E-Tablo Entegrasyonu (Google Form POST İsteği)
-    # Kendi Google Formunuzu oluşturduktan sonra aşağıdaki bilgileri güncelleyin:
-    GOOGLE_FORM_URL = "https://docs.google.com/forms/d/e/1FAIpQLScVNCZuP38OYVdtaESONN2xnL7YE1ZMB0hh2p97-KPo_-5B_g/formResponse" # Örn: "https://docs.google.com/forms/d/e/1FAIpQLSfXXXXXX/formResponse"
+    GOOGLE_FORM_URL = "https://docs.google.com/forms/d/e/1FAIpQLScVNCZuP38OYVdtaESONN2xnL7YE1ZMB0hh2p97-KPo_-5B_g/formResponse"
     
     google_saved = False
     if GOOGLE_FORM_URL and "SİZİN_GOOGLE_FORM_URL" not in GOOGLE_FORM_URL:
@@ -121,26 +136,26 @@ def save_to_history(sample_name, values, cb_pred, lgb_pred, xgb_pred, mean_pred,
 def load_models_and_metadata():
     """Loads models and metadata and caches them for performance."""
     try:
-        cb = joblib.load(MODELS_DIR / "catboost.pkl")
-        lgb = joblib.load(MODELS_DIR / "lightgbm.pkl")
-        xgb = joblib.load(MODELS_DIR / "xgboost.pkl")
+        models = {}
+        for name in MODEL_KEYS:
+            models[name] = joblib.load(MODELS_DIR / f"{name}.pkl")
         with open(MODELS_DIR / "metadata.json", "r", encoding="utf-8") as f:
             metadata = json.load(f)
-        return {"catboost": cb, "lightgbm": lgb, "xgboost": xgb}, metadata
+        return models, metadata
     except Exception as e:
         st.error(f"Modeller yüklenirken hata oluştu: {str(e)}")
-        st.info("Lütfen önce model eğitimini tamamlayın: python train_model.py --data merged_dataset.csv")
+        st.info("Lütfen önce model eğitimini tamamlayın: .venv\\Scripts\\python.exe train_model.py --data merged_dataset.csv")
         return None, None
 
 
 models, metadata = load_models_and_metadata()
 
 if models and metadata:
-    st.title("🌱 Tarımsal Biyokütle Pirolizi — Bio-Yağ Verimi Tahmincisi")
+    st.title("🌱 Tarımsal Biyokütle Pirolizi — Bio-Yağ Verimi Tahmincisi (11 Algoritma)")
     st.markdown(
         "Bu interaktif panel, tarımsal biyokütle bileşenlerini ve piroliz koşullarını "
-        "kullanarak elde edilecek **bio-yağ verimini (%)** üç farklı gradient boosting modelinin "
-        "(CatBoost, LightGBM, XGBoost) topluluk tahminiyle hesaplar."
+        "kullanarak elde edilecek **bio-yağ verimini (%)** tezinizde kullanılan **11 farklı modelin** "
+        "topluluk (ensemble) tahminiyle hesaplar."
     )
 
     # Setup layout
@@ -235,11 +250,11 @@ if models and metadata:
                     
         # Make predictions
         input_df = pd.DataFrame([values])
-        cb_pred = float(models["catboost"].predict(input_df)[0])
-        lgb_pred = float(models["lightgbm"].predict(input_df)[0])
-        xgb_pred = float(models["xgboost"].predict(input_df)[0])
-        
-        preds = np.array([cb_pred, lgb_pred, xgb_pred])
+        preds_dict = {}
+        for name in MODEL_KEYS:
+            preds_dict[name] = float(models[name].predict(input_df)[0])
+            
+        preds = np.array(list(preds_dict.values()))
         mean_pred = float(preds.mean())
         std_pred = float(preds.std())
         min_pred = float(preds.min())
@@ -254,10 +269,11 @@ if models and metadata:
             curve_data.append(test_val)
             
         curve_df = pd.DataFrame(curve_data)
-        cb_curve = models["catboost"].predict(curve_df)
-        lgb_curve = models["lightgbm"].predict(curve_df)
-        xgb_curve = models["xgboost"].predict(curve_df)
-        ensemble_curve = (cb_curve + lgb_curve + xgb_curve) / 3.0
+        preds_curves = {}
+        for name in MODEL_KEYS:
+            preds_curves[name] = models[name].predict(curve_df)
+            
+        ensemble_curve = np.mean(list(preds_curves.values()), axis=0)
         
         max_idx = np.argmax(ensemble_curve)
         opt_temp = int(temp_range[max_idx])
@@ -269,9 +285,9 @@ if models and metadata:
         with m_col1:
             st.markdown(
                 f'<div class="metric-card">'
-                f'<div class="metric-label">Ensemble Tahmini (Ortalama)</div>'
+                f'<div class="metric-label">11 Modelli Ensemble Tahmini (Ortalama)</div>'
                 f'<div class="metric-value">%{mean_pred:.2f}</div>'
-                f'<div class="metric-label">Belirsizlik: ± {std_pred:.2f}</div>'
+                f'<div class="metric-label">Belirsizlik (Sapma): ± {std_pred:.2f}</div>'
                 f'</div>', 
                 unsafe_allow_html=True
             )
@@ -280,27 +296,29 @@ if models and metadata:
                 f'<div class="metric-card">'
                 f'<div class="metric-label">Beklenen Aralık</div>'
                 f'<div class="metric-value">%{min_pred:.2f} - %{max_pred:.2f}</div>'
-                f'<div class="metric-label">Modeller Arası Sapma</div>'
+                f'<div class="metric-label">Modeller Arası Dağılım</div>'
                 f'</div>', 
                 unsafe_allow_html=True
             )
             
         st.write("")
         
-        # Individual Models Row
+        # Individual Models Expander / DataFrame
         st.subheader("🤖 Bireysel Model Tahminleri")
-        ind_col1, ind_col2, ind_col3 = st.columns(3)
-        with ind_col1:
-            st.metric(label="CatBoost Tahmini", value=f"%{cb_pred:.2f}")
-        with ind_col2:
-            st.metric(label="LightGBM Tahmini", value=f"%{lgb_pred:.2f}")
-        with ind_col3:
-            st.metric(label="XGBoost Tahmini", value=f"%{xgb_pred:.2f}")
+        pred_rows = []
+        for name in MODEL_KEYS:
+            nice_name = name.replace('_', ' ').title()
+            pred_rows.append({
+                "Model": nice_name, 
+                "Tahmin Edilen Bio-Yağ Verimi (%)": f"%{preds_dict[name]:.2f}",
+                "Test Seti R² Skoru": f"{metadata['models'][name]['r2_test']:.3f}"
+            })
+        st.dataframe(pd.DataFrame(pred_rows), hide_index=True, use_container_width=True)
 
         # Tahmin Geçmişine Kaydetme Butonu
         st.write("")
         if st.button("💾 Tahmini Geçmiş Dosyasına Kaydet (predictions_history.csv)", use_container_width=True):
-            save_to_history(sample_name, values, cb_pred, lgb_pred, xgb_pred, mean_pred, std_pred, min_pred, max_pred, opt_temp, opt_yield)
+            save_to_history(sample_name, values, preds_dict, mean_pred, std_pred, min_pred, max_pred, opt_temp, opt_yield)
 
         # Interactive Chart: Temp vs Yield Profile
         st.subheader("📈 Sıcaklığa Bağlı Bio-Yağ Verim Profili")
@@ -311,19 +329,23 @@ if models and metadata:
         
         # Plotting
         fig, ax = plt.subplots(figsize=(10, 4.5))
-        ax.plot(temp_range, ensemble_curve, label="Ensemble (Ortalama)", color="#1e3d59", linewidth=2.5)
+        ax.plot(temp_range, ensemble_curve, label="11 Modelli Ensemble", color="#1e3d59", linewidth=2.5)
+        
+        curves_matrix = np.array(list(preds_curves.values()))
+        min_curve = curves_matrix.min(axis=0)
+        max_curve = curves_matrix.max(axis=0)
+        
         ax.fill_between(
             temp_range, 
-            np.minimum(cb_curve, np.minimum(lgb_curve, xgb_curve)), 
-            np.maximum(cb_curve, np.maximum(lgb_curve, xgb_curve)), 
+            min_curve, 
+            max_curve, 
             color="#1e3d59", 
             alpha=0.15, 
             label="Model Dağılım Aralığı"
         )
         
         # Highlight current point
-        current_y = (cb_pred + lgb_pred + xgb_pred) / 3.0
-        ax.scatter(pt, current_y, color="#ff6e40", s=100, zorder=5, edgecolors='black', label=f"Mevcut Nokta ({pt}°C, %{current_y:.1f})")
+        ax.scatter(pt, mean_pred, color="#ff6e40", s=100, zorder=5, edgecolors='black', label=f"Mevcut Nokta ({pt}°C, %{mean_pred:.1f})")
         
         ax.set_title("Piroliz Sıcaklığı vs. Bio-Yağ Verimi (%)", fontsize=12, fontweight='bold', pad=10)
         ax.set_xlabel("Piroliz Sıcaklığı (°C)", fontsize=10)
@@ -348,14 +370,18 @@ if models and metadata:
         with st.expander("ℹ️ Model Performansı ve Eğitim Hakkında Bilgi", expanded=False):
             t_stats = metadata["target_stats"]
             st.markdown(
-                f"**Veri Kümesi:** Model, Zhao (2024) ve Ortiz (2021) çalışmalarından derlenmiş "
+                f"**Veri Kümesi:** Modeller, Zhao (2024) ve Ortiz (2021) çalışmalarından derlenmiş "
                 f"toplam **{metadata['n_train'] + metadata['n_test']} satır** veri üzerinde eğitilmiştir.\n\n"
                 f"**Eğitim Verisi Gözlemlenen Aralık:** %{t_stats['min']:.1f} – %{t_stats['max']:.1f} "
                 f"(Ortalama: %{t_stats['mean']:.1f})\n\n"
-                f"**Test Seti R² Performans Skorları:**\n"
-                f"- CatBoost: `{metadata['models']['catboost']['r2_test']:.3f}`\n"
-                f"- LightGBM: `{metadata['models']['lightgbm']['r2_test']:.3f}`\n"
-                f"- XGBoost: `{metadata['models']['xgboost']['r2_test']:.3f}`"
+                f"**Modellerin Test Seti Performans Sıralaması (R²):**"
             )
+            # List all models sorted by Test R2
+            model_items = []
+            for name in MODEL_KEYS:
+                model_items.append((name.replace('_', ' ').title(), metadata['models'][name]['r2_test']))
+            model_items = sorted(model_items, key=lambda x: x[1], reverse=True)
+            for m_name, r2_val in model_items:
+                st.markdown(f"- **{m_name}**: `{r2_val:.3f}`")
 else:
     st.warning("Uygulama çalıştırılamıyor. Lütfen modellerin eğitildiğinden emin olun.")

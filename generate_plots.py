@@ -18,6 +18,20 @@ TEST_SIZE = 0.20
 MODELS_DIR = Path("models")
 DATA_PATH = Path("merged_dataset.csv")
 
+MODEL_KEYS = [
+    "linear_regression",
+    "ridge",
+    "knn",
+    "svr",
+    "decision_tree",
+    "random_forest",
+    "extra_trees",
+    "gradient_boosting",
+    "xgboost",
+    "lightgbm",
+    "catboost",
+]
+
 # Set aesthetic styling
 sns.set_theme(style="whitegrid", context="paper", font_scale=1.1)
 plt.rcParams["font.family"] = "sans-serif"
@@ -39,11 +53,11 @@ def load_data_and_models():
     )
     
     # Load trained models
-    cb = joblib.load(MODELS_DIR / "catboost.pkl")
-    lgb = joblib.load(MODELS_DIR / "lightgbm.pkl")
-    xgb = joblib.load(MODELS_DIR / "xgboost.pkl")
-    
-    return df, X_test, y_test, {"CatBoost": cb, "LightGBM": lgb, "XGBoost": xgb}
+    models = {}
+    for name in MODEL_KEYS:
+        models[name] = joblib.load(MODELS_DIR / f"{name}.pkl")
+        
+    return df, X_test, y_test, models
 
 def plot_correlation_matrix(df):
     """Generates a correlation matrix heatmap of features and target."""
@@ -93,25 +107,25 @@ def plot_correlation_matrix(df):
     print(f"[OK] Korelasyon matrisi kaydedildi: {output_path}")
 
 def plot_regression_plots(X_test, y_test, models):
-    """Generates scatter plots comparing Experimental vs. Predicted Yields."""
+    """Generates scatter plots comparing Experimental vs. Predicted Yields for 11 models + ensemble (12 panels)."""
     # Compute predictions
-    cb_pred = models["CatBoost"].predict(X_test)
-    lgb_pred = models["LightGBM"].predict(X_test)
-    xgb_pred = models["XGBoost"].predict(X_test)
-    ensemble_pred = (cb_pred + lgb_pred + xgb_pred) / 3.0
+    preds_list = []
+    all_preds = {}
+    for name in MODEL_KEYS:
+        pred = models[name].predict(X_test)
+        preds_list.append(pred)
+        nice_name = name.replace('_', ' ').title()
+        all_preds[nice_name] = pred
+        
+    ensemble_pred = np.mean(preds_list, axis=0)
+    all_preds["Ensemble (Topluluk)"] = ensemble_pred
     
-    all_preds = {
-        "CatBoost": cb_pred,
-        "LightGBM": lgb_pred,
-        "XGBoost": xgb_pred,
-        "Ensemble (Topluluk)": ensemble_pred
-    }
-    
-    fig, axes = plt.subplots(2, 2, figsize=(12, 11))
+    # 3 rows, 4 columns = 12 subplots
+    fig, axes = plt.subplots(3, 4, figsize=(16, 13))
     axes = axes.ravel()
     
-    # Color palette for different subplots
-    colors = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728"]
+    # Color palette for 12 subplots
+    colors = sns.color_palette("tab20", 12)
     
     for i, (name, pred) in enumerate(all_preds.items()):
         ax = axes[i]
@@ -122,7 +136,7 @@ def plot_regression_plots(X_test, y_test, models):
         mae = mean_absolute_error(y_test, pred)
         
         # Scatter plot
-        ax.scatter(y_test, pred, color=colors[i], alpha=0.6, edgecolors="k", s=40, label="Gözlemler")
+        ax.scatter(y_test, pred, color=colors[i], alpha=0.6, edgecolors="k", s=35, label="Gözlemler")
         
         # Identity line (y = x)
         lims = [
@@ -135,9 +149,9 @@ def plot_regression_plots(X_test, y_test, models):
         ax.set_ylim(lims)
         
         # Layout details
-        ax.set_title(f"{name} Modeli", fontsize=12, fontweight="bold")
-        ax.set_xlabel("Deneysel Biyo-Yağ Verimi (%)", fontsize=10)
-        ax.set_ylabel("Tahmin Edilen Biyo-Yağ Verimi (%)", fontsize=10)
+        ax.set_title(f"{name}", fontsize=11, fontweight="bold")
+        ax.set_xlabel("Deneysel Biyo-Yağ Verimi (%)", fontsize=9)
+        ax.set_ylabel("Tahmin Edilen Biyo-Yağ Verimi (%)", fontsize=9)
         ax.grid(True, linestyle="--", alpha=0.5)
         
         # Text box for metrics
@@ -146,10 +160,11 @@ def plot_regression_plots(X_test, y_test, models):
             0.05, 0.95, metric_text,
             transform=ax.transAxes,
             verticalalignment="top",
-            bbox=dict(boxstyle="round,pad=0.5", facecolor="white", alpha=0.8, edgecolor="gray")
+            fontsize=9,
+            bbox=dict(boxstyle="round,pad=0.4", facecolor="white", alpha=0.8, edgecolor="gray")
         )
         
-        ax.legend(loc="lower right", fontsize=9)
+        ax.legend(loc="lower right", fontsize=8)
         
     plt.suptitle("Regresyon Grafik Karşılaştırmaları (Deneysel vs. Tahmin Edilen Biyo-Yağ Verimi)", fontsize=14, fontweight="bold", y=0.98)
     plt.tight_layout()
@@ -157,19 +172,19 @@ def plot_regression_plots(X_test, y_test, models):
     output_path = "regression_plots.png"
     plt.savefig(output_path, dpi=300, bbox_inches="tight")
     plt.close()
-    print(f"[OK] Regresyon grafikleri karşılaştırması kaydedildi: {output_path}")
+    print(f"[OK] 12 Panelli Regresyon grafikleri karşılaştırması kaydedildi: {output_path}")
 
 def plot_uncertainty_vs_error(X_test, y_test, models):
-    """Plots Ensemble Uncertainty (Std Dev) vs. Absolute Error."""
-    cb_pred = models["CatBoost"].predict(X_test)
-    lgb_pred = models["LightGBM"].predict(X_test)
-    xgb_pred = models["XGBoost"].predict(X_test)
-    
-    ensemble_pred = (cb_pred + lgb_pred + xgb_pred) / 3.0
+    """Plots Ensemble Uncertainty (Std Dev of 11 models) vs. Absolute Error."""
+    preds_list = []
+    for name in MODEL_KEYS:
+        preds_list.append(models[name].predict(X_test))
+        
+    ensemble_pred = np.mean(preds_list, axis=0)
     
     # Calculate error and uncertainty
     abs_error = np.abs(y_test.values - ensemble_pred)
-    uncertainty = np.std([cb_pred, lgb_pred, xgb_pred], axis=0)
+    uncertainty = np.std(preds_list, axis=0)
     
     # Pearson Correlation Coefficient (r) and p-value
     r_val, p_val = pearsonr(uncertainty, abs_error)
